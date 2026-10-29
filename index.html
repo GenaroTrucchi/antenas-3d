@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <title>Antenas 3D</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 13v8M8 21h8M12 13a1.6 1.6 0 1 0 0-.01M7.8 8.8a6 6 0 0 0 0 8.4M16.2 8.8a6 6 0 0 1 0 8.4M5 6a10 10 0 0 0 0 14M19 6a10 10 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>Antenas 3D</span>
+    </div>
+    <nav class="seg" id="antennaTabs" aria-label="Antena"></nav>
+    <a class="ar-link" href="ar.html">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      Cámara AR
+    </a>
+  </header>
+
+  <main class="layout">
+    <section class="viewer" id="viewer">
+      <canvas id="scene"></canvas>
+
+      <div class="legend" aria-label="Escala de colores">
+        <div class="legend-title">Ganancia [dBi]</div>
+        <div class="legend-body">
+          <div class="legend-bar" id="legendBar"></div>
+          <div class="legend-ticks" id="legendTicks"></div>
+        </div>
+      </div>
+
+      <div class="viewer-tools">
+        <div class="seg small" id="modeSeg" aria-label="Qué mostrar"></div>
+        <button id="resetView" class="icon-btn" type="button" title="Restablecer vista" aria-label="Restablecer vista">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="hint" id="hint">Arrastrá para rotar · rueda o pellizco para zoom · dos dedos / clic derecho para mover</div>
+
+      <div class="transport">
+        <button id="playBtn" class="play" type="button" aria-label="Pausar">
+          <svg class="i-pause" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>
+          <svg class="i-play" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>
+        </button>
+        <input type="range" id="phase" min="0" max="359" step="1" value="0" aria-label="Fase ωt de la onda">
+        <span id="phaseLabel" class="phase-label">ωt = 0°</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2 id="antName"></h2>
+        <div class="tags" id="antTags"></div>
+        <p id="antDesc" class="desc"></p>
+        <ul id="antNotes" class="notes"></ul>
+      </section>
+
+      <section class="card">
+        <h3>Parámetros</h3>
+        <div id="params" class="params"></div>
+      </section>
+
+      <section class="card">
+        <h3>Métricas</h3>
+        <dl id="metrics" class="metrics"></dl>
+        <p class="fine">Antena sin pérdidas: ganancia = directividad.</p>
+      </section>
+
+      <section class="card">
+        <h3>Cortes polares <span class="sub">(dB relativos al máximo)</span></h3>
+        <div class="polars">
+          <figure><canvas id="polarE"></canvas><figcaption><i class="dot e"></i><span id="capE"></span></figcaption></figure>
+          <figure><canvas id="polarH"></canvas><figcaption><i class="dot h"></i><span id="capH"></span></figcaption></figure>
+        </div>
+        <p class="fine">Líneas punteadas: puntos de media potencia (−3 dB).</p>
+      </section>
+
+      <section class="card">
+        <h3>Visualización</h3>
+        <div class="field">
+          <span class="field-label">Plano donde se dibuja la onda</span>
+          <div class="seg small wide" id="planeSeg"></div>
+        </div>
+        <div class="field">
+          <span class="field-label">Radio del patrón</span>
+          <div class="seg small wide" id="scaleSeg"></div>
+        </div>
+        <label class="slider-row">
+          <span class="slider-head"><span>Rango dinámico</span><output id="rangeOut"></output></span>
+          <input type="range" id="range" min="10" max="60" step="5" value="30">
+        </label>
+        <label class="slider-row">
+          <span class="slider-head"><span>Opacidad del patrón</span><output id="opacityOut"></output></span>
+          <input type="range" id="opacity" min="0.1" max="1" step="0.05" value="0.45">
+        </label>
+        <label class="slider-row">
+          <span class="slider-head"><span>Velocidad de la onda</span><output id="speedOut"></output></span>
+          <input type="range" id="speed" min="0.05" max="2" step="0.05" value="0.5">
+        </label>
+        <div class="checks">
+          <label><input type="checkbox" id="chkShells"> Frentes de onda 3D</label>
+          <label><input type="checkbox" id="chkAtten"> Atenuación 1/r</label>
+          <label><input type="checkbox" id="chkAnt"> Antena</label>
+          <label><input type="checkbox" id="chkAxes"> Ejes y grilla</label>
+          <label><input type="checkbox" id="chkMesh"> Malla del patrón</label>
+        </div>
+      </section>
+
+      <details class="card">
+        <summary>¿Qué estoy viendo?</summary>
+        <ul class="notes">
+          <li><b>Patrón 3D:</b> la distancia al centro en cada dirección indica cuánto irradia la antena hacia allí (en dB, desde el piso del rango dinámico hasta el máximo). El color indica la ganancia en dBi.</li>
+          <li><b>Onda:</b> el campo instantáneo Re{E} ∝ F(θ,φ)·cos(kr − ωt)/r sobre un plano. Naranja y azul son semiciclos opuestos. Con la barra inferior movés el tiempo (ωt) y ves cómo las crestas se alejan de la antena.</li>
+          <li><b>Frentes 3D:</b> cada esfera es una cresta de la onda; su brillo en cada dirección es proporcional al patrón.</li>
+          <li><b>Escala:</b> la antena y la longitud de onda están a escala entre sí. El tamaño del patrón es arbitrario.</li>
+          <li><b>Aproximación:</b> la onda se dibuja con el modelo de campo lejano en todo el plano. Cerca de la antena (campo cercano, r &lt; 2D²/λ) el campo real es más complejo.</li>
+        </ul>
+      </details>
+    </aside>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

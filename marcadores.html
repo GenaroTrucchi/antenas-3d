@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Antenas 3D · Marcadores</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { padding: 16px; }
+    .toolbar {
+      max-width: 900px;
+      margin: 0 auto 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toolbar h1 { font-size: 18px; margin: 0; }
+    .toolbar .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .print-btn {
+      border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer;
+      background: var(--accent); color: var(--accent-ink); font-weight: 650;
+    }
+    .help { max-width: 900px; margin: 0 auto 20px; }
+    .pages { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+
+    /* Cada hoja A4 */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 9mm 10mm;
+      background: #fff;
+      color: #111;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: system-ui, sans-serif;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+    .page h2 { margin: 0; font-size: 18pt; }
+    .page .sub { margin: 1mm 0 4mm; color: #555; font-size: 11pt; }
+    .up { font-weight: 700; font-size: 13pt; margin-bottom: 2mm; }
+    .up::before { content: "↑ "; }
+    .marker svg { display: block; shape-rendering: crispEdges; }
+    .xarrow {
+      display: flex; align-items: center; gap: 3mm; margin-top: 4mm;
+      font-weight: 700; font-size: 13pt;
+    }
+    .xarrow .line { height: 0; border-top: 1.2mm solid #111; position: relative; }
+    .xarrow .line::after {
+      content: ""; position: absolute; right: -1mm; top: -3.2mm;
+      border-left: 6mm solid #111; border-top: 2.6mm solid transparent; border-bottom: 2.6mm solid transparent;
+    }
+    .mount { margin-top: 4mm; font-size: 10pt; line-height: 1.45; max-width: 175mm; }
+    .mount li { margin: 1mm 0; }
+    .ruler { margin-top: auto; padding-top: 6mm; font-size: 9pt; color: #555; display: flex; align-items: center; gap: 3mm; }
+    .ruler i { display: inline-block; width: 50mm; height: 3mm; border: 0.4mm solid #111; border-top: 0; }
+
+    @media screen and (max-width: 860px) {
+      .page { zoom: 0.42; }
+    }
+    @media print {
+      @page { size: A4; margin: 0; }
+      html, body { background: #fff; padding: 0; }
+      .toolbar, .help { display: none; }
+      .pages { gap: 0; }
+      .page { box-shadow: none; break-after: page; zoom: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>Marcadores para la cámara AR</h1>
+    <div class="actions">
+      <label>Lado del cuadrado negro
+        <select id="size">
+          <option value="10">10 cm</option>
+          <option value="15" selected>15 cm</option>
+        </select>
+      </label>
+      <button class="print-btn" type="button" onclick="print()">Imprimir</button>
+      <a class="link-btn" href="ar.html">Ir a Cámara AR</a>
+    </div>
+  </div>
+  <div class="help card">
+    <ul class="notes">
+      <li>Imprimí a <b>tamaño real (100 %)</b>, sin "ajustar a la página". Verificá con la regla de 5 cm al pie de cada hoja.</li>
+      <li>Si imprimís otro tamaño, indicalo en la app: Ajustes → Lado del marcador impreso.</li>
+      <li>Pegá cada hoja sobre algo rígido (cartón) para que quede plana. Dejá el borde blanco alrededor del cuadrado.</li>
+      <li>Marcadores más grandes se detectan desde más lejos y el patrón tiembla menos.</li>
+    </ul>
+  </div>
+  <div class="pages" id="pages"></div>
+
+  <script src="vendor/aruco/cv.js"></script>
+  <script src="vendor/aruco/aruco.js"></script>
+  <script type="module">
+    import { ANTENNAS } from './js/antennas.js';
+
+    const MOUNT = {
+      dipolo: [
+        'Pegá la tarjeta en posición vertical cerca del dipolo, por ejemplo en el soporte, debajo del punto de alimentación.',
+        'La flecha → puede apuntar a cualquier dirección horizontal: el patrón es simétrico alrededor del dipolo.',
+      ],
+      yagi: [
+        'Pegá la tarjeta en posición vertical, paralela al boom (por ejemplo en el mástil o al costado del boom).',
+        'La flecha → tiene que apuntar hacia los directores, es decir, hacia donde apunta la antena.',
+      ],
+      bocina: [
+        'Pegá la tarjeta en posición vertical sobre un costado de la bocina o de su soporte.',
+        'La flecha → tiene que apuntar hacia la boca de la bocina (dirección de máxima radiación).',
+      ],
+    };
+
+    const dict = new window.AR.Dictionary('ARUCO_MIP_36h12');
+
+    function render() {
+      const cm = parseFloat(document.getElementById('size').value);
+      const total = cm * 10 / 8; // el SVG incluye un borde blanco de una celda por lado
+      document.getElementById('pages').innerHTML = ANTENNAS.map((a) => `
+        <section class="page">
+          <h2>${a.full}</h2>
+          <div class="sub">Marcador ${a.markerId} · cuadrado negro de ${cm} cm</div>
+          <div class="up">ARRIBA (+z)</div>
+          <div class="marker">${dict.generateSVG(a.markerId).replace('<svg ', `<svg width="${total}cm" height="${total}cm" `)}</div>
+          <div class="xarrow"><span class="line" style="width:${Math.min(cm, 14)}cm"></span><span>+x</span></div>
+          <ul class="mount">
+            ${MOUNT[a.id].map((t) => `<li>${t}</li>`).join('')}
+            <li>Después, en la app (Ajustes → Posición de la antena), indicá la distancia del centro del cuadrado al centro de la antena: adelante (+x), detrás de la tarjeta (+y) y arriba (+z).</li>
+          </ul>
+          <div class="ruler"><i></i> 5 cm (verificá la escala de impresión)</div>
+        </section>`).join('');
+    }
+    document.getElementById('size').addEventListener('change', render);
+    render();
+  </script>
+</body>
+</html>

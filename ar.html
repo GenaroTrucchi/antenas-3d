@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>Antenas 3D · Cámara AR</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/ar.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
+  </script>
+</head>
+<body class="ar">
+  <div class="ar-stage" id="stage">
+    <video id="video" class="ar-src" playsinline muted autoplay></video>
+    <canvas id="ar3d"></canvas>
+  </div>
+
+  <header class="ar-top">
+    <a href="./" class="icon-btn" aria-label="Volver al visor">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <div class="ar-status" id="status" data-found="false"><i class="pulse"></i><span id="statusText">Buscando marcador…</span></div>
+    <button class="icon-btn" id="settingsBtn" type="button" aria-label="Ajustes">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+  </header>
+
+  <div class="ar-bottom">
+    <div class="seg small" id="modeSeg" aria-label="Qué mostrar"></div>
+    <div class="transport ar-transport">
+      <button id="playBtn" class="play" type="button" aria-label="Pausar">
+        <svg class="i-pause" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>
+        <svg class="i-play" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>
+      </button>
+      <input type="range" id="phase" min="0" max="359" step="1" value="0" aria-label="Fase ωt de la onda">
+      <span id="phaseLabel" class="phase-label">ωt = 0°</span>
+    </div>
+  </div>
+
+  <section class="sheet" id="sheet" hidden>
+    <div class="sheet-head">
+      <h3>Ajustes</h3>
+      <button class="icon-btn" id="closeSheet" type="button" aria-label="Cerrar ajustes">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="field">
+      <span class="field-label">Plano donde se dibuja la onda</span>
+      <div class="seg small wide" id="planeSeg"></div>
+    </div>
+    <label class="slider-row">
+      <span class="slider-head"><span>Lado del marcador impreso (cuadrado negro)</span><output id="markerCmOut"></output></span>
+      <input type="range" id="markerCm" min="3" max="30" step="0.5">
+    </label>
+    <label class="slider-row">
+      <span class="slider-head"><span>Tamaño del patrón</span><output id="patternCmOut"></output></span>
+      <input type="range" id="patternCm" min="10" max="150" step="5">
+    </label>
+    <label class="slider-row">
+      <span class="slider-head"><span>Opacidad del patrón</span><output id="opacityOut"></output></span>
+      <input type="range" id="opacity" min="0.1" max="1" step="0.05">
+    </label>
+
+    <h4 id="offsetTitle">Posición de la antena</h4>
+    <p class="fine">Distancia del centro del marcador al centro de la antena. Se guarda para cada antena.</p>
+    <label class="slider-row">
+      <span class="slider-head"><span>Adelante (+x, hacia la flecha)</span><output id="off_xOut"></output></span>
+      <input type="range" id="off_x" min="-100" max="100" step="1">
+    </label>
+    <label class="slider-row">
+      <span class="slider-head"><span>Detrás del marcador (+y)</span><output id="off_yOut"></output></span>
+      <input type="range" id="off_y" min="-100" max="100" step="1">
+    </label>
+    <label class="slider-row">
+      <span class="slider-head"><span>Arriba (+z)</span><output id="off_zOut"></output></span>
+      <input type="range" id="off_z" min="-100" max="100" step="1">
+    </label>
+
+    <div class="checks">
+      <label><input type="checkbox" id="chkShells"> Frentes de onda 3D</label>
+      <label><input type="checkbox" id="chkAnt"> Modelo de la antena</label>
+      <label><input type="checkbox" id="chkAxes"> Ejes</label>
+    </div>
+
+    <details class="advanced">
+      <summary>Avanzado</summary>
+      <label class="slider-row">
+        <span class="slider-head"><span>Campo visual de la cámara (lado largo)</span><output id="fovDegOut"></output></span>
+        <input type="range" id="fovDeg" min="40" max="90" step="1">
+      </label>
+      <p class="fine">Si el patrón parece "flotar" o deformarse al acercarte, probá cambiar este valor.</p>
+    </details>
+    <button class="link-btn" id="resetSettings" type="button">Restablecer ajustes</button>
+  </section>
+
+  <div class="ar-start" id="start">
+    <div class="card start-card">
+      <h2>Cámara AR</h2>
+      <p>Apuntá la cámara trasera a uno de los marcadores impresos. La app reconoce de qué antena se trata y dibuja su patrón de radiación sobre ella.</p>
+      <ol class="notes">
+        <li>Imprimí los marcadores a tamaño real y pegá cada uno en su antena.</li>
+        <li>Tocá <b>Iniciar cámara</b> y permití el acceso.</li>
+        <li>Caminá alrededor: el patrón queda fijo sobre el marcador.</li>
+      </ol>
+      <button class="primary-btn" id="startCam" type="button">Iniciar cámara</button>
+      <div class="start-links">
+        <button class="link-btn" id="startDemo" type="button">Probar sin cámara (demo)</button>
+        <a class="link-btn" href="marcadores.html">Imprimir marcadores</a>
+      </div>
+      <p class="error" id="startError" role="alert"></p>
+    </div>
+  </div>
+
+  <script src="vendor/aruco/cv.js"></script>
+  <script src="vendor/aruco/aruco.js"></script>
+  <script type="module" src="js/ar.js"></script>
+</body>
+</html>
