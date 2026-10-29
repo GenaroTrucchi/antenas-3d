@@ -1,5 +1,9 @@
 # Antenas 3D
 
+**Web publicada:** <https://genarotrucchi.github.io/antenas-3d/> ·
+[Cámara AR](https://genarotrucchi.github.io/antenas-3d/ar.html) ·
+[Marcadores para imprimir](https://genarotrucchi.github.io/antenas-3d/marcadores.html)
+
 Visor web de patrones de radiación (campo lejano) para las antenas del laboratorio:
 dipolo, Yagi-Uda y bocina piramidal. Funciona en PC (mouse) y en celulares o tablets (táctil),
 sin instalar nada y sin conexión a internet (Three.js está incluido en `vendor/`).
